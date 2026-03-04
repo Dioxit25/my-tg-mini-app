@@ -1,6 +1,6 @@
 // Telegram Mini App Schema
-// Для идентификации пользователей и групп в Telegram
 // База данных: PostgreSQL (Supabase)
+// Таблицы созданы вручную в snake_case для совместимости
 
 generator client {
   provider = "prisma-client-js"
@@ -12,8 +12,9 @@ datasource db {
 }
 
 // Модель пользователя Telegram
+// Соответствует таблице telegram_users
 model TelegramUser {
-  id            String   @id @default(cuid())
+  id            String   @id @default(gen_random_uuid())
   telegramId    Int      @unique // Уникальный ID пользователя в Telegram
   firstName     String?  // Имя пользователя
   lastName      String?  // Фамилия пользователя
@@ -28,12 +29,13 @@ model TelegramUser {
   groups        UserGroup[]
   sessions      UserSession[]
 
-  @@index([telegramId])
+  @@map("telegram_users")
 }
 
 // Модель группы/канала Telegram
+// Соответствует таблице telegram_groups
 model TelegramGroup {
-  id            String   @id @default(cuid())
+  id            String   @id @default(gen_random_uuid())
   telegramId    BigInt   @unique // Уникальный ID группы в Telegram
   title         String?  // Название группы
   type          String?  // Тип: group, supergroup, channel
@@ -44,12 +46,13 @@ model TelegramGroup {
   // Связи
   users         UserGroup[]
 
-  @@index([telegramId])
+  @@map("telegram_groups")
 }
 
 // Связующая таблица пользователей и групп (many-to-many)
+// Соответствует таблице user_groups
 model UserGroup {
-  id            String   @id @default(cuid())
+  id            String   @id @default(gen_random_uuid())
   userId        String
   groupId       String
   role          String?  @default("member") // Роль: admin, creator, member
@@ -62,11 +65,13 @@ model UserGroup {
   @@unique([userId, groupId])
   @@index([userId])
   @@index([groupId])
+  @@map("user_groups")
 }
 
 // Сессии пользователей (для отслеживания активных сессий в Mini App)
+// Соответствует таблице user_sessions
 model UserSession {
-  id            String   @id @default(cuid())
+  id            String   @id @default(gen_random_uuid())
   userId        String
   initData      String   // Telegram initData
   chatInstance  String?  // Идентификатор чата/группы
@@ -80,4 +85,5 @@ model UserSession {
 
   @@index([userId])
   @@index([expiresAt])
+  @@map("user_sessions")
 }
