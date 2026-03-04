@@ -49,6 +49,9 @@ export default function Home() {
     setError(null)
 
     try {
+      // Ждем небольшое время, чтобы Telegram WebApp SDK загрузился
+      await new Promise(resolve => setTimeout(resolve, 100))
+
       // Проверяем, что мы в Telegram WebApp
       const webApp = (window as any).Telegram?.WebApp
 
