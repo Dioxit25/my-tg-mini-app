@@ -1,12 +1,13 @@
 // Telegram Mini App Schema
 // Для идентификации пользователей и групп в Telegram
+// База данных: PostgreSQL (Supabase)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -28,7 +29,6 @@ model TelegramUser {
   sessions      UserSession[]
 
   @@index([telegramId])
-  @@map("telegram_users")
 }
 
 // Модель группы/канала Telegram
@@ -45,7 +45,6 @@ model TelegramGroup {
   users         UserGroup[]
 
   @@index([telegramId])
-  @@map("telegram_groups")
 }
 
 // Связующая таблица пользователей и групп (many-to-many)
@@ -63,7 +62,6 @@ model UserGroup {
   @@unique([userId, groupId])
   @@index([userId])
   @@index([groupId])
-  @@map("user_groups")
 }
 
 // Сессии пользователей (для отслеживания активных сессий в Mini App)
@@ -82,5 +80,4 @@ model UserSession {
 
   @@index([userId])
   @@index([expiresAt])
-  @@map("user_sessions")
 }

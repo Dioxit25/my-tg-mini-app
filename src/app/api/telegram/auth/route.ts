@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/db';
 import {
   validateInitData,
   getUserFromInitData,
@@ -16,12 +17,12 @@ if (!BOT_TOKEN) {
 
 /**
  * POST /api/telegram/auth
- * Проверяет и возвращает данные пользователя из Telegram
- * ВРЕМЕННАЯ ВЕРСИЯ: без сохранения в базу данных (для Vercel)
+ * Проверяет и сохраняет данные пользователя из Telegram
+ * Теперь работает с PostgreSQL через Prisma
  */
 export async function POST(request: NextRequest) {
   try {
-    console.log('[API] Начало обработки запроса');
+    console.log('[API] Начало обработки запроса (PostgreSQL)');
 
     const body = await request.json();
     const { initData } = body;
@@ -84,39 +85,139 @@ export async function POST(request: NextRequest) {
     const chatInstance = getChatInstanceFromInitData(initData);
     console.log('[API] Chat instance:', chatInstance || 'нет');
 
-    // ВРЕМЕННО: Не используем базу данных, просто возвращаем данные из Telegram
-    // Это нужно, чтобы приложение работало на Vercel (SQLite не поддерживается)
+    // Находим или создаем пользователя в базе данных
+    console.log('[API] Поиск пользователя в базе данных...');
+    let user = await db.telegramUser.findUnique({
+      where: { telegramId: telegramUser.id },
+      include: { groups: { include: { group: true } } }
+    });
 
-    // Формируем текущую группу из chat_instance если есть
-    let currentGroup = null;
-    if (chatInstance) {
-      currentGroup = {
-        id: 'temp-group-id',
-        telegramId: chatInstance,
-        title: 'Группа (текущая)',
-        type: 'supergroup',
-        username: null,
-      };
+    if (!user) {
+      console.log('[API] Создание нового пользователя...');
+      user = await db.telegramUser.create({
+        data: {
+          telegramId: telegramUser.id,
+          firstName: telegramUser.first_name,
+          lastName: telegramUser.last_name,
+          username: telegramUser.username,
+          languageCode: telegramUser.language_code,
+          photoUrl: telegramUser.photo_url,
+          isPremium: telegramUser.is_premium || false,
+        },
+        include: { groups: { include: { group: true } } }
+      });
+    } else {
+      console.log('[API] Обновление существующего пользователя...');
+      // Обновляем данные пользователя если изменились
+      user = await db.telegramUser.update({
+        where: { id: user.id },
+        data: {
+          firstName: telegramUser.first_name,
+          lastName: telegramUser.last_name,
+          username: telegramUser.username,
+          photoUrl: telegramUser.photo_url,
+          isPremium: telegramUser.is_premium || false,
+        },
+        include: { groups: { include: { group: true } } }
+      });
     }
+
+    // Если есть chat_instance, создаем или обновляем группу
+    let groupData = null;
+    if (chatInstance) {
+      console.log('[API] Обработка группы...');
+      // Парсим chat_instance как BigInt для ID группы
+      const groupId = BigInt(chatInstance);
+
+      let group = await db.telegramGroup.findUnique({
+        where: { telegramId: groupId }
+      });
+
+      if (!group) {
+        console.log('[API] Создание новой группы...');
+        group = await db.telegramGroup.create({
+          data: {
+            telegramId: groupId,
+            type: 'supergroup', // По умолчанию
+          }
+        });
+      }
+
+      // Создаем связь пользователя с группой, если её нет
+      const existingRelation = await db.userGroup.findUnique({
+        where: {
+          userId_groupId: {
+            userId: user.id,
+            groupId: group.id,
+          }
+        }
+      });
+
+      if (!existingRelation) {
+        console.log('[API] Создание связи пользователя с группой...');
+        await db.userGroup.create({
+          data: {
+            userId: user.id,
+            groupId: group.id,
+            role: 'member',
+          }
+        });
+
+        // Перезагружаем пользователя с группами
+        user = await db.telegramUser.findUnique({
+          where: { id: user.id },
+          include: { groups: { include: { group: true } } }
+        }) as typeof user;
+      }
+
+      groupData = group;
+    }
+
+    // Создаем сессию пользователя
+    console.log('[API] Создание сессии...');
+    const session = await db.userSession.create({
+      data: {
+        userId: user.id,
+        initData: initData.substring(0, 1000), // Сохраняем только начало
+        chatInstance: chatInstance || null,
+        ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+        userAgent: request.headers.get('user-agent') || 'unknown',
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 часа
+      }
+    });
 
     console.log('[API] Формируем ответ...');
 
-    // Возвращаем данные пользователя напрямую из Telegram
+    // Возвращаем данные пользователя
     const response = {
       success: true,
       user: {
-        id: 'temp-user-id',
-        telegramId: telegramUser.id,
-        firstName: telegramUser.first_name,
-        lastName: telegramUser.last_name,
-        username: telegramUser.username,
-        languageCode: telegramUser.language_code,
-        photoUrl: telegramUser.photo_url,
-        isPremium: telegramUser.is_premium || false,
+        id: user.id,
+        telegramId: user.telegramId,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        username: user.username,
+        languageCode: user.languageCode,
+        photoUrl: user.photoUrl,
+        isPremium: user.isPremium,
       },
-      groups: currentGroup ? [currentGroup] : [],
-      currentGroup: currentGroup,
-      sessionId: 'temp-session-id',
+      groups: user.groups.map(ug => ({
+        id: ug.group.id,
+        telegramId: ug.group.telegramId.toString(),
+        title: ug.group.title,
+        type: ug.group.type,
+        username: ug.group.username,
+        role: ug.role,
+        joinedAt: ug.joinedAt,
+      })),
+      currentGroup: groupData ? {
+        id: groupData.id,
+        telegramId: groupData.telegramId.toString(),
+        title: groupData.title,
+        type: groupData.type,
+        username: groupData.username,
+      } : null,
+      sessionId: session.id,
     };
 
     console.log('[API] Ответ сформирован успешно');
