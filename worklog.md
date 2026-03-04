@@ -215,7 +215,32 @@
 - tsconfig.json (обновлен)
 - worklog.md (новый)
 
-**Следующие шаги**: Подключение проекта к Vercel и деплой
+**Следующие шаги**: Создание проекта на Vercel
+
+---
+
+### Шаг 7: Создание проекта на Vercel
+**Дата**: 2025-01-XX
+**Выполнено**:
+- Создан проект на Vercel через API
+- Настроен фреймворк Next.js
+- Установлены команды: `bun install` для установки, `bun run build` для сборки
+- Получен проект ID и домен
+- Изменения закоммичены в GitHub
+
+**Технические детали**:
+- Vercel API Token использован для аутентификации
+- Project ID: prj_Az9PmBVmEX6RZrJq8syposMsocV7
+- Account ID: team_5qNm6rR1joeLWCcEwA80yUFD
+- Домен: my-tg-mini-app-seven.vercel.app
+- Node версия: 24.x
+- Framework: Next.js
+- Output Directory: .next/standalone
+
+**Проблемы**: Нет
+**Решения**: Не требовались
+
+**Следующие шаги**: Подключение GitHub репозитория к проекту Vercel
 
 ---
 
