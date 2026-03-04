@@ -326,6 +326,80 @@
 
 ---
 
+### Шаг 11: Создание Telegram бота FreeTimeV2_bot
+**Дата**: 2025-01-XX
+**Выполнено**:
+- Пользователь создал бота через @BotFather командой `/newbot`
+- Название бота: FreeTime V2
+- Username бота: FreeTimeV2_bot
+- Получен токен бота: 8412646803:AAHPzgGJm2DjpY4g-36T2EsIqZWZaVssq0k
+- Токен добавлен в переменные окружения Vercel (Шаг 9)
+- Сгенерировано современное изображение для Mini App (1344x768 пикселей)
+- Изображение сохранено в `/public/miniapp-banner.png`
+
+**Технические детали**:
+- Бот создан пользователем самостоятельно по инструкции
+- Изображение сгенерировано через z-ai-web-dev-sdk
+- Размер изображения: 1344x768 (соотношение 1.75:1)
+- Prompt: "Modern minimalist app banner for FreeTime V2, sleek design with abstract flowing time patterns, gradient colors from deep blue to vibrant purple, clean typography space, professional tech aesthetic, 16:9 aspect ratio, high quality, detailed, modern UI design style"
+
+**Проблемы и решения**:
+1. **Проблема**: Первый запрос с размером 1440x720 отклонен API
+   - **Решение**: Изменен размер на поддерживаемый 1344x768
+
+2. **Проблема**: BotFather требует изображение 640x360
+   - **Решение**: Пользователю предложено обрезать изображение до нужного размера
+
+**Следующие шаги**: Отладка работы приложения в Telegram
+
+---
+
+### Шаг 12: Отладка работы в Telegram Mini App
+**Дата**: 2025-01-XX
+**Выполнено**:
+- Пользователь создал Mini App в BotFather
+- При открытии приложения в Telegram показывалась ошибка: "Пожалуйста, откройте это приложение через Telegram"
+- Протестировано с ноутбука и двух телефонов - везде демонстрационные данные
+- Выявлена проблема: Telegram WebApp SDK не загружается на странице
+- Внесены исправления для работы с Telegram WebApp API
+
+**Проблемы и решения**:
+
+1. **Проблема**: Приложение показывало ошибку "Пожалуйста, откройте это приложение через Telegram" даже в Telegram
+   - **Причина**: Код проверял `process.env.NODE_ENV === 'development'`, но в production на Vercel это не работало корректно
+   - **Решение**: Изменена логика - если не в Telegram, всегда показывать демо-данные (первый коммит)
+   - Коммит: `fix: показывать демо-данные если приложение открыто не в Telegram`
+
+2. **Проблема**: Приложение показывало демонстрационные данные даже в Telegram
+   - **Причина**: Скрипт Telegram WebApp SDK не загружался на странице, поэтому `window.Telegram.WebApp` был undefined
+   - **Решение**: 
+     - Добавлен импорт `Script` из 'next/script'
+     - Добавлен скрипт Telegram WebApp SDK: `<Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />`
+     - Добавлена задержка 100мс перед проверкой `window.Telegram.WebApp` для гарантии загрузки
+   - Коммит: `fix: добавить Telegram WebApp SDK и задержку для загрузки`
+   - Измененные файлы: `src/app/layout.tsx`, `src/app/page.tsx`
+
+**Технические детали**:
+- Скрипт загружается с стратегией `beforeInteractive` (до интерактивности страницы)
+- Добавлен `await new Promise(resolve => setTimeout(resolve, 100))` перед проверкой Telegram.WebApp
+- Два деплоя на Vercel с исправлениями:
+  - dpl_3GsPVcJZ2CacAiBp3XYuyVBdHxm4 (первое исправление)
+  - dpl_692v8YZZpchy2mrKvqkJFKTeVkMM (Telegram WebApp SDK)
+
+**Деплои на Vercel**:
+- Коммит: 906ed8a - первый фикс
+- Коммит: d8818c6 - добавление Telegram SDK
+- Оба деплоя успешно завершены (READY)
+
+**Текущий статус**:
+- Приложение задеплоено на https://my-tg-mini-app-seven.vercel.app
+- Telegram WebApp SDK добавлен
+- Жду проверки пользователем
+
+**Следующие шаги**: Проверка работы после добавления Telegram WebApp SDK
+
+---
+
 ## 🚀 Инструкция по настройке GitHub и Vercel
 
 ### ШАГ 1: Создание GitHub репозитория
