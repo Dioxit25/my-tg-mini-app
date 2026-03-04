@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import {
   validateInitData,
   getUserFromInitData,
@@ -17,15 +16,21 @@ if (!BOT_TOKEN) {
 
 /**
  * POST /api/telegram/auth
- * Проверяет и сохраняет данные пользователя из Telegram
+ * Проверяет и возвращает данные пользователя из Telegram
+ * ВРЕМЕННАЯ ВЕРСИЯ: без сохранения в базу данных (для Vercel)
  */
 export async function POST(request: NextRequest) {
   try {
+    console.log('[API] Начало обработки запроса');
+
     const body = await request.json();
     const { initData } = body;
 
+    console.log('[API] Получен запрос с initData:', initData ? 'да' : 'нет');
+
     // Проверяем наличие initData
     if (!initData) {
+      console.error('[API] Ошибка: initData отсутствует');
       return NextResponse.json(
         { error: 'initData обязателен' },
         { status: 400 }
@@ -34,22 +39,29 @@ export async function POST(request: NextRequest) {
 
     // Проверяем наличие токена бота
     if (!BOT_TOKEN) {
+      console.error('[API] Ошибка: TELEGRAM_BOT_TOKEN не задан');
       return NextResponse.json(
         { error: 'Сервер не настроен. Обратитесь к администратору.' },
         { status: 500 }
       );
     }
 
+    console.log('[API] Валидация initData...');
+
     // Валидируем initData
     if (!validateInitData(initData, BOT_TOKEN)) {
+      console.error('[API] Ошибка: невалидный initData');
       return NextResponse.json(
         { error: 'Невалидные данные Telegram. Пожалуйста, откройте приложение из Telegram.' },
         { status: 401 }
       );
     }
 
+    console.log('[API] initData валиден');
+
     // Проверяем срок действия initData
     if (isInitDataExpired(initData)) {
+      console.error('[API] Ошибка: initData истек');
       return NextResponse.json(
         { error: 'Срок действия данных истек. Пожалуйста, откройте приложение заново.' },
         { status: 401 }
@@ -59,145 +71,67 @@ export async function POST(request: NextRequest) {
     // Извлекаем данные пользователя
     const telegramUser = getUserFromInitData(initData);
     if (!telegramUser) {
+      console.error('[API] Ошибка: не удалось получить пользователя из initData');
       return NextResponse.json(
         { error: 'Не удалось получить данные пользователя' },
         { status: 400 }
       );
     }
 
+    console.log('[API] Пользователь получен:', telegramUser.first_name, telegramUser.username);
+
     // Извлекаем chat_instance (идентификатор группы)
     const chatInstance = getChatInstanceFromInitData(initData);
+    console.log('[API] Chat instance:', chatInstance || 'нет');
 
-    // Находим или создаем пользователя в базе данных
-    let user = await db.telegramUser.findUnique({
-      where: { telegramId: telegramUser.id },
-      include: { groups: { include: { group: true } } }
-    });
+    // ВРЕМЕННО: Не используем базу данных, просто возвращаем данные из Telegram
+    // Это нужно, чтобы приложение работало на Vercel (SQLite не поддерживается)
 
-    if (!user) {
-      user = await db.telegramUser.create({
-        data: {
-          telegramId: telegramUser.id,
-          firstName: telegramUser.first_name,
-          lastName: telegramUser.last_name,
-          username: telegramUser.username,
-          languageCode: telegramUser.language_code,
-          photoUrl: telegramUser.photo_url,
-          isPremium: telegramUser.is_premium || false,
-        },
-        include: { groups: { include: { group: true } } }
-      });
-    } else {
-      // Обновляем данные пользователя если изменились
-      user = await db.telegramUser.update({
-        where: { id: user.id },
-        data: {
-          firstName: telegramUser.first_name,
-          lastName: telegramUser.last_name,
-          username: telegramUser.username,
-          photoUrl: telegramUser.photo_url,
-          isPremium: telegramUser.is_premium || false,
-        },
-        include: { groups: { include: { group: true } } }
-      });
-    }
-
-    // Если есть chat_instance, создаем или обновляем группу
-    let groupData = null;
+    // Формируем текущую группу из chat_instance если есть
+    let currentGroup = null;
     if (chatInstance) {
-      // Парсим chat_instance как BigInt для ID группы
-      const groupId = BigInt(chatInstance);
-
-      let group = await db.telegramGroup.findUnique({
-        where: { telegramId: groupId }
-      });
-
-      if (!group) {
-        group = await db.telegramGroup.create({
-          data: {
-            telegramId: groupId,
-            type: 'supergroup', // По умолчанию
-          }
-        });
-      }
-
-      // Создаем связь пользователя с группой, если её нет
-      const existingRelation = await db.userGroup.findUnique({
-        where: {
-          userId_groupId: {
-            userId: user.id,
-            groupId: group.id,
-          }
-        }
-      });
-
-      if (!existingRelation) {
-        await db.userGroup.create({
-          data: {
-            userId: user.id,
-            groupId: group.id,
-            role: 'member',
-          }
-        });
-
-        // Перезагружаем пользователя с группами
-        user = await db.telegramUser.findUnique({
-          where: { id: user.id },
-          include: { groups: { include: { group: true } } }
-        }) as typeof user;
-      }
-
-      groupData = group;
+      currentGroup = {
+        id: 'temp-group-id',
+        telegramId: chatInstance,
+        title: 'Группа (текущая)',
+        type: 'supergroup',
+        username: null,
+      };
     }
 
-    // Создаем сессию пользователя
-    const session = await db.userSession.create({
-      data: {
-        userId: user.id,
-        initData: initData.substring(0, 1000), // Сохраняем только начало
-        chatInstance: chatInstance || null,
-        ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
-        userAgent: request.headers.get('user-agent') || 'unknown',
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 часа
-      }
-    });
+    console.log('[API] Формируем ответ...');
 
-    // Возвращаем данные пользователя
-    return NextResponse.json({
+    // Возвращаем данные пользователя напрямую из Telegram
+    const response = {
       success: true,
       user: {
-        id: user.id,
-        telegramId: user.telegramId,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        username: user.username,
-        languageCode: user.languageCode,
-        photoUrl: user.photoUrl,
-        isPremium: user.isPremium,
+        id: 'temp-user-id',
+        telegramId: telegramUser.id,
+        firstName: telegramUser.first_name,
+        lastName: telegramUser.last_name,
+        username: telegramUser.username,
+        languageCode: telegramUser.language_code,
+        photoUrl: telegramUser.photo_url,
+        isPremium: telegramUser.is_premium || false,
       },
-      groups: user.groups.map(ug => ({
-        id: ug.group.id,
-        telegramId: ug.group.telegramId.toString(),
-        title: ug.group.title,
-        type: ug.group.type,
-        username: ug.group.username,
-        role: ug.role,
-        joinedAt: ug.joinedAt,
-      })),
-      currentGroup: groupData ? {
-        id: groupData.id,
-        telegramId: groupData.telegramId.toString(),
-        title: groupData.title,
-        type: groupData.type,
-        username: groupData.username,
-      } : null,
-      sessionId: session.id,
-    });
+      groups: currentGroup ? [currentGroup] : [],
+      currentGroup: currentGroup,
+      sessionId: 'temp-session-id',
+    };
+
+    console.log('[API] Ответ сформирован успешно');
+
+    return NextResponse.json(response);
 
   } catch (error) {
-    console.error('Ошибка при аутентификации Telegram:', error);
+    console.error('[API] Ошибка при аутентификации Telegram:', error);
+    console.error('[API] Детали ошибки:', JSON.stringify(error, null, 2));
+
     return NextResponse.json(
-      { error: 'Внутренняя ошибка сервера' },
+      {
+        error: 'Внутренняя ошибка сервера',
+        details: error instanceof Error ? error.message : 'Неизвестная ошибка'
+      },
       { status: 500 }
     );
   }
