@@ -266,6 +266,33 @@
 
 ---
 
+### Шаг 9: Настройка переменных окружения в Vercel
+**Дата**: 2025-01-XX
+**Выполнено**:
+- Пользователь создал Telegram бота FreeTimeV2_bot через @BotFather
+- Получен токен бота: 8412646803:AAHPzgGJm2DjpY4g-36T2EsIqZWZaVssq0k
+- Добавлена переменная `DATABASE_URL` в Vercel
+  - ID: eyD9Js1NVJPBvYU6
+  - Value: file:./db/custom.db
+- Добавлена переменная `TELEGRAM_BOT_TOKEN` в Vercel
+  - ID: Q93bvrFJNYTTi5pf
+  - Value: 8412646803:AAHPzgGJm2DjpY4g-36T2EsIqZWZaVssq0k
+- Обе переменные применены ко всем окружениям (production, preview, development)
+
+**Технические детали**:
+- Vercel API v8 использован для добавления переменных окружения
+- Project ID: prj_Az9PmBVmEX6RZrJq8syposMsocV7
+- Team ID: team_5qNm6rR1joeLWCcEwA80yUFD
+- Bot username: FreeTimeV2_bot
+- Все переменные типа "plain" (не зашифрованы)
+
+**Проблемы**: Нет
+**Решения**: Не требовались
+
+**Следующие шаги**: Деплой проекта на Vercel
+
+---
+
 ## 🚀 Инструкция по настройке GitHub и Vercel
 
 ### ШАГ 1: Создание GitHub репозитория
