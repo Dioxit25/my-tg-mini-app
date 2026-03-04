@@ -463,6 +463,45 @@
 
 ---
 
+### Шаг 15: Подключение Supabase PostgreSQL
+**Дата**: 2025-01-XX
+**Выполнено**:
+- Пользователь выбрал базу данных Supabase через Vercel Marketplace
+- Получены переменные окружения от Supabase:
+  - DATABASE_URL, POSTGRES_URL, POSTGRES_URL_NON_POOLING и другие
+- Обновлена схема Prisma для PostgreSQL (вместо SQLite)
+  - Восстановлен полный код API с работой с базой данных
+  - DATABASE_URL обновлен в Vercel на PostgreSQL connection string
+- Пользователь вручную создал таблицы в Supabase SQL Editor:
+  - telegram_users (пользователи Telegram)
+  - telegram_groups (группы/каналы)
+  - user_groups (связь пользователей и групп)
+  - user_sessions (сессии пользователей)
+  - Все необходимые индексы для производительности
+
+**Технические детали**:
+- База данных: PostgreSQL на Supabase (Serverless)
+- Host: db.dssgamfhizwffyjgbwtu.supabase.co
+- Регион: aws-1-eu-central-1
+- Connection string: postgres://postgres.dssgamfhizwffyjgbwtu:CZGQXoDqyMLtvJin@aws-1-eu-central-1.pooler.supabase.com:5432/postgres
+- Коммит: `feat: подключить PostgreSQL (Supabase) вместо SQLite`
+- DATABASE_URL обновлен через Vercel API
+
+**Проблемы и решения**:
+1. **Проблема**: DATABASE_URL переменная уже существовала в Vercel
+   - **Решение**: Обновили существующую переменную через PATCH запрос Vercel API
+
+**Текущий статус**:
+- Схема Prisma обновлена для PostgreSQL
+- Таблицы созданы в Supabase
+- DATABASE_URL обновлен в Vercel
+- Код API восстановлен с полной работой с базой данных
+- Жду проверки пользователем
+
+**Следующие шаги**: Тестирование работы с PostgreSQL
+
+---
+
 ## 📋 Что было сделано в рамках проекта:
 
 ### ✅ Завершено:
