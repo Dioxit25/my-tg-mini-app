@@ -35,7 +35,7 @@ bot.command('start', async (ctx) => {
         [
           {
             text: '🚀 Открыть Mini App',
-            url: WEB_APP_URL,
+            web_app: { url: WEB_APP_URL },
           }
         ]
       ]
@@ -56,7 +56,7 @@ bot.on('message', async (ctx) => {
           [
             {
               text: '🚀 Открыть Mini App',
-              url: WEB_APP_URL,
+              web_app: { url: WEB_APP_URL },
             }
           ]
         ]
