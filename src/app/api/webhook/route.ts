@@ -71,7 +71,8 @@ export async function POST(request: NextRequest) {
                   web_app: { url: WEB_APP_URL },
                 }
               ]
-          ]
+            ]
+          }
         });
       }
     });
