@@ -55,8 +55,23 @@ export async function GET() {
         totalSessions: sessionCount
       },
       data: {
-        recentUsers,
-        recentGroups,
+        recentUsers: recentUsers.map(u => ({
+          id: u.id,
+          telegramId: u.telegramId,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          username: u.username,
+          isPremium: u.isPremium,
+          createdAt: u.createdAt
+        })),
+        recentGroups: recentGroups.map(g => ({
+          id: g.id,
+          telegramId: g.telegramId.toString(),
+          title: g.title,
+          type: g.type,
+          username: g.username,
+          createdAt: g.createdAt
+        })),
         recentUserGroups: recentUserGroups.map(ug => ({
           id: ug.id,
           user: {

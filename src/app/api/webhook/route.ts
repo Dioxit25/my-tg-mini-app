@@ -72,24 +72,27 @@ bot.on('message', async (ctx) => {
 export async function POST(request: NextRequest) {
   try {
     console.log('[WEBHOOK] Получен запрос от Telegram');
+    const body = await request.json();
+    console.log('[WEBHOOK] Тип обновления:', body.update_id ? body.message?.chat?.type : 'unknown');
+    console.log('[WEBHOOK] Есть сообщение?', !!body.message);
+    console.log('[WEBHOOK] Есть команда?', body.message?.text);
 
     if (!BOT_TOKEN) {
+      console.error('[WEBHOOK] TELEGRAM_BOT_TOKEN не задан');
       return NextResponse.json(
         { error: 'TELEGRAM_BOT_TOKEN не задан' },
         { status: 500 }
       );
     }
 
-    // Парсим тело запроса
-    const body = await request.json();
-    console.log('[WEBHOOK] Тело запроса:', JSON.stringify(body, null, 2));
-
     // Обрабатываем обновление от Telegram
     await bot.handleUpdate(body);
 
+    console.log('[WEBHOOK] Обновление обработано успешно');
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('[WEBHOOK] Ошибка:', error);
+    console.error('[WEBHOOK] Stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       { error: 'Ошибка обработки webhook' },
       { status: 500 }
