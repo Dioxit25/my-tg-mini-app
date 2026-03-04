@@ -3,9 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 // Токен бота
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
-// URL вашего Mini App
-const WEB_APP_URL = 'https://my-tg-mini-app-seven.vercel.app';
-
 /**
  * POST /api/webhook
  * Telegram Webhook endpoint
@@ -43,6 +40,11 @@ export async function POST(request: NextRequest) {
 
         const replyText = '👋 Привет! Я бот для Mini App с идентификацией пользователя и группы.\n\nНажмите кнопку ниже, чтобы открыть приложение:';
 
+        // Определяем URL Mini App на основе окружения
+        const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+        const host = request.headers.get('host') || 'localhost:3000';
+        const webAppUrl = `${protocol}://${host}`;
+
         // Отправляем ответ через Telegram API
         const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
           method: 'POST',
@@ -55,7 +57,7 @@ export async function POST(request: NextRequest) {
                 [
                   {
                     text: '🚀 Открыть Mini App',
-                    web_app: { url: WEB_APP_URL }
+                    web_app: { url: webAppUrl }
                   }
                 ]
               ]
@@ -72,6 +74,11 @@ export async function POST(request: NextRequest) {
       } else if (chat?.type === 'private') {
         console.log('[WEBHOOK] Сообщение в личном чате, отправляем кнопку');
 
+        // Определяем URL Mini App на основе окружения
+        const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+        const host = request.headers.get('host') || 'localhost:3000';
+        const webAppUrl = `${protocol}://${host}`;
+
         const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -83,7 +90,7 @@ export async function POST(request: NextRequest) {
                 [
                   {
                     text: '🚀 Открыть Mini App',
-                    web_app: { url: WEB_APP_URL }
+                    web_app: { url: webAppUrl }
                   }
                 ]
               ]
@@ -130,7 +137,10 @@ export async function GET(request: NextRequest) {
     const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: webhookUrl })
+      body: JSON.stringify({
+        url: webhookUrl,
+        drop_pending_updates: true, // Сбрасываем pending updates
+      })
     });
 
     const data = await response.json();
@@ -142,6 +152,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: true,
         webhookUrl,
+        telegramResponse: data,
         message: 'Webhook успешно установлен!'
       });
     } else {
@@ -149,7 +160,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Ошибка установки webhook',
-          details: data.description || 'Неизвестная ошибка'
+          details: data.description || 'Неизвестная ошибка',
+          telegramResponse: data,
         },
         { status: 500 }
       );
@@ -159,7 +171,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Ошибка установки webhook',
-        details: error instanceof Error ? error.message : 'Неизвестная ошибка'
+        details: error instanceof Error ? error.message : 'Неизвестная ошибка',
       },
       { status: 500 }
     );
