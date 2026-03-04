@@ -53,48 +53,43 @@ export default function Home() {
       const webApp = (window as any).Telegram?.WebApp
 
       if (!webApp) {
-        // Для разработки: если нет Telegram WebApp, используем тестовые данные
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Telegram WebApp не найден. Режим разработки.')
+        // Если НЕ в Telegram - всегда показываем тестовые данные
+        // Это позволяет тестировать приложение в браузере
+        console.warn('Telegram WebApp не найден. Режим демонстрации с тестовыми данными.')
 
-          // Имитируем успешный ответ для разработки
-          setData({
-            success: true,
-            user: {
-              id: 'dev-user-id',
-              telegramId: 123456789,
-              firstName: 'Тестовый',
-              lastName: 'Пользователь',
-              username: 'test_user',
-              languageCode: 'ru',
-              isPremium: true,
-            },
-            groups: [
-              {
-                id: 'dev-group-1',
-                telegramId: '-1001234567890',
-                title: 'Тестовая группа',
-                type: 'supergroup',
-                username: 'test_group',
-                role: 'admin',
-                joinedAt: new Date().toISOString(),
-              }
-            ],
-            currentGroup: {
-              id: 'dev-group-1',
+        // Имитируем успешный ответ для демонстрации
+        setData({
+          success: true,
+          user: {
+            id: 'demo-user-id',
+            telegramId: 123456789,
+            firstName: 'Демонстрационный',
+            lastName: 'Пользователь',
+            username: 'demo_user',
+            languageCode: 'ru',
+            isPremium: true,
+          },
+          groups: [
+            {
+              id: 'demo-group-1',
               telegramId: '-1001234567890',
-              title: 'Тестовая группа',
+              title: 'Демонстрационная группа',
               type: 'supergroup',
-              username: 'test_group',
-            },
-            sessionId: 'dev-session-id',
-          })
+              username: 'demo_group',
+              role: 'admin',
+              joinedAt: new Date().toISOString(),
+            }
+          ],
+          currentGroup: {
+            id: 'demo-group-1',
+            telegramId: '-1001234567890',
+            title: 'Демонстрационная группа',
+            type: 'supergroup',
+            username: 'demo_group',
+          },
+          sessionId: 'demo-session-id',
+        })
 
-          setLoading(false)
-          return
-        }
-
-        setError('Пожалуйста, откройте это приложение через Telegram')
         setLoading(false)
         return
       }
