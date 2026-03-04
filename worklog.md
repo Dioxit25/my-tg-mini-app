@@ -293,6 +293,39 @@
 
 ---
 
+### Шаг 10: Деплой проекта на Vercel
+**Дата**: 2025-01-XX
+**Выполнено**:
+- Первая попытка деплоя завершилась с ошибкой "NEXT_NO_ROUTES_MANIFEST"
+- Ошибка связана с неверным Output Directory (было `.next/standalone`)
+- Обновлены настройки проекта через Vercel API v12:
+  - Изменен `outputDirectory` с `.next/standalone` на `.next`
+- Сделан пустой коммит для запуска нового деплоя
+- Второй деплой успешно завершен
+
+**Технические детали**:
+- Первый деплой (dpl_8Fp32nrs4UdxhB2hJQLwyyy6suVz) - ERROR
+  - errorCode: NEXT_NO_ROUTES_MANIFEST
+  - errorMessage: routes-manifest.json не найден
+- Второй деплой (dpl_X8X1KQnTsgCb3Nwxxg4LPeqCCfh1) - READY ✅
+  - State: READY
+  - ReadyState: READY
+  - readySubstate: PROMOTED
+  - URL: my-tg-mini-1dyf2wdcx-dioxits-projects.vercel.app
+  - Основной домен: my-tg-mini-app-seven.vercel.app
+  - Build time: ~45 секунд
+
+**Проблемы и решения**:
+1. **Проблема**: Деплой упал с ошибкой NEXT_NO_ROUTES_MANIFEST
+   **Решение**: Изменен Output Directory с `.next/standalone` на `.next` через Vercel API
+
+**Закоммиченные файлы**:
+- Пустой коммит для запуска нового деплоя
+
+**Следующие шаги**: Создание Mini App в @BotFather
+
+---
+
 ## 🚀 Инструкция по настройке GitHub и Vercel
 
 ### ШАГ 1: Создание GitHub репозитория
