@@ -24,12 +24,80 @@ export async function POST(request: NextRequest) {
 
     console.log('[WEBHOOK] TELEGRAM_BOT_TOKEN задан');
 
-    // Просто читаем тело и логируем
+    // Читаем тело запроса
     const body = await request.json();
     console.log('[WEBHOOK] Тело запроса:', JSON.stringify(body).substring(0, 200));
 
+    // Проверяем, есть ли сообщение
+    if (body.message) {
+      const message = body.message;
+      const text = message.text;
+      const chat = message.chat;
+      const from = message.from;
+
+      console.log('[WEBHOOK] Сообщение:', text, 'от', from?.first_name, 'в чате', chat?.type);
+
+      // Если это команда /start
+      if (text === '/start') {
+        console.log('[WEBHOOK] Обработка команды /start');
+
+        const replyText = '👋 Привет! Я бот для Mini App с идентификацией пользователя и группы.\n\nНажмите кнопку ниже, чтобы открыть приложение:';
+
+        // Отправляем ответ через Telegram API
+        const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chat.id,
+            text: replyText,
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: '🚀 Открыть Mini App',
+                    web_app: { url: WEB_APP_URL }
+                  }
+                ]
+              ]
+            }
+          })
+        });
+
+        const responseData = await response.json();
+        console.log('[WEBHOOK] Ответ sendMessage:', JSON.stringify(responseData));
+
+        if (!responseData.ok) {
+          console.error('[WEBHOOK] Ошибка отправки сообщения:', responseData);
+        }
+      } else if (chat?.type === 'private') {
+        console.log('[WEBHOOK] Сообщение в личном чате, отправляем кнопку');
+
+        const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chat.id,
+            text: '👋 Нажмите кнопку ниже, чтобы открыть Mini App:',
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: '🚀 Открыть Mini App',
+                    web_app: { url: WEB_APP_URL }
+                  }
+                ]
+              ]
+            }
+          })
+        });
+
+        const responseData = await response.json();
+        console.log('[WEBHOOK] Ответ sendMessage:', JSON.stringify(responseData));
+      }
+    }
+
     console.log('[WEBHOOK] Возвращаем ok: true');
-    return NextResponse.json({ ok: true, received: true });
+    return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('[WEBHOOK] Ошибка:', error);
     console.error('[WEBHOOK] Stack:', error instanceof Error ? error.stack : 'No stack');
