@@ -43,6 +43,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<AuthResponse | null>(null)
+  const [loadingGroup, setLoadingGroup] = useState(false)
 
   const authenticate = async () => {
     setLoading(true)
@@ -147,6 +148,53 @@ export default function Home() {
   useEffect(() => {
     authenticate()
   }, [])
+
+  // Получаем название группы через Bot API, если оно отсутствует
+  useEffect(() => {
+    if (data?.currentGroup && !data.currentGroup.title && data.currentGroup.telegramId) {
+      fetchGroupName(data.currentGroup.telegramId)
+    }
+  }, [data?.currentGroup])
+
+  const fetchGroupName = async (chatId: string) => {
+    try {
+      setLoadingGroup(true)
+      console.log('[App] Запрос названия группы для:', chatId)
+
+      const response = await fetch('/api/get-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ chatId }),
+      })
+
+      const result = await response.json()
+
+      if (result.success && result.chat?.title) {
+        console.log('[App] Название группы получено:', result.chat.title)
+        // Обновляем данные с новым названием группы
+        setData(prev => prev ? {
+          ...prev,
+          currentGroup: {
+            ...prev.currentGroup!,
+            title: result.chat.title,
+            username: result.chat.username || prev.currentGroup?.username,
+          },
+          groups: prev.groups?.map(g =>
+            g.telegramId === chatId
+              ? { ...g, title: result.chat.title, username: result.chat.username || g.username }
+              : g
+          )
+        } : prev)
+      }
+    } catch (err) {
+      console.error('[App] Ошибка при получении названия группы:', err)
+      // Не показываем ошибку пользователю, это не критично
+    } finally {
+      setLoadingGroup(false)
+    }
+  }
 
   const getRoleIcon = (role?: string) => {
     if (role === 'creator' || role === 'admin') return <Crown className="h-4 w-4" />
