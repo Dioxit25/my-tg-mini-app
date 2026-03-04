@@ -14,7 +14,7 @@ datasource db {
 // Модель пользователя Telegram
 // Соответствует таблице telegram_users
 model TelegramUser {
-  id            String   @id @default(gen_random_uuid())
+  id            String   @id @default(uuid())
   telegramId    Int      @unique // Уникальный ID пользователя в Telegram
   firstName     String?  // Имя пользователя
   lastName      String?  // Фамилия пользователя
@@ -35,7 +35,7 @@ model TelegramUser {
 // Модель группы/канала Telegram
 // Соответствует таблице telegram_groups
 model TelegramGroup {
-  id            String   @id @default(gen_random_uuid())
+  id            String   @id @default(uuid())
   telegramId    BigInt   @unique // Уникальный ID группы в Telegram
   title         String?  // Название группы
   type          String?  // Тип: group, supergroup, channel
@@ -52,7 +52,7 @@ model TelegramGroup {
 // Связующая таблица пользователей и групп (many-to-many)
 // Соответствует таблице user_groups
 model UserGroup {
-  id            String   @id @default(gen_random_uuid())
+  id            String   @id @default(uuid())
   userId        String
   groupId       String
   role          String?  @default("member") // Роль: admin, creator, member
@@ -71,7 +71,7 @@ model UserGroup {
 // Сессии пользователей (для отслеживания активных сессий в Mini App)
 // Соответствует таблице user_sessions
 model UserSession {
-  id            String   @id @default(gen_random_uuid())
+  id            String   @id @default(uuid())
   userId        String
   initData      String   // Telegram initData
   chatInstance  String?  // Идентификатор чата/группы

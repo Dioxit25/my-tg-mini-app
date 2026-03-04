@@ -126,51 +126,62 @@ export async function POST(request: NextRequest) {
     let groupData = null;
     if (chatInstance) {
       console.log('[API] Обработка группы...');
-      // Парсим chat_instance как BigInt для ID группы
-      const groupId = BigInt(chatInstance);
-
-      let group = await db.telegramGroup.findUnique({
-        where: { telegramId: groupId }
-      });
-
-      if (!group) {
-        console.log('[API] Создание новой группы...');
-        group = await db.telegramGroup.create({
-          data: {
-            telegramId: groupId,
-            type: 'supergroup', // По умолчанию
-          }
-        });
-      }
-
-      // Создаем связь пользователя с группой, если её нет
-      const existingRelation = await db.userGroup.findUnique({
-        where: {
-          userId_groupId: {
-            userId: user.id,
-            groupId: group.id,
-          }
+      try {
+        // Парсим chat_instance как BigInt для ID группы
+        // Проверяем, что chat_instance - это валидное число
+        const chatInstanceNum = parseInt(chatInstance, 10);
+        if (isNaN(chatInstanceNum)) {
+          console.error('[API] Ошибка: chat_instance не является валидным числом:', chatInstance);
+          throw new Error('Invalid chat_instance format');
         }
-      });
+        const groupId = BigInt(chatInstanceNum);
 
-      if (!existingRelation) {
-        console.log('[API] Создание связи пользователя с группой...');
-        await db.userGroup.create({
-          data: {
-            userId: user.id,
-            groupId: group.id,
-            role: 'member',
+        let group = await db.telegramGroup.findUnique({
+          where: { telegramId: groupId }
+        });
+
+        if (!group) {
+          console.log('[API] Создание новой группы...');
+          group = await db.telegramGroup.create({
+            data: {
+              telegramId: groupId,
+              type: 'supergroup', // По умолчанию
+            }
+          });
+        }
+
+        // Создаем связь пользователя с группой, если её нет
+        const existingRelation = await db.userGroup.findUnique({
+          where: {
+            userId_groupId: {
+              userId: user.id,
+              groupId: group.id,
+            }
           }
         });
 
-        // Перезагружаем пользователя с группами
-        user = await db.telegramUser.findUnique({
-          where: { id: user.id },
-          include: { groups: { include: { group: true } } }
-        }) as typeof user;
-      }
+        if (!existingRelation) {
+          console.log('[API] Создание связи пользователя с группой...');
+          await db.userGroup.create({
+            data: {
+              userId: user.id,
+              groupId: group.id,
+              role: 'member',
+            }
+          });
 
-      groupData = group;
+          // Перезагружаем пользователя с группами
+          user = await db.telegramUser.findUnique({
+            where: { id: user.id },
+            include: { groups: { include: { group: true } } }
+          }) as typeof user;
+        }
+
+        groupData = group;
+      } catch (groupError) {
+        console.error('[API] Ошибка при обработке группы:', groupError);
+        // Не прерываем выполнение, просто логируем ошибку
+      }
     }
 
     // Создаем сессию пользователя
