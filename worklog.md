@@ -502,6 +502,59 @@
 
 ---
 
+### Шаг 16: Исправление ошибок PostgreSQL на Vercel
+**Дата**: 2025-01-XX
+**Выполнено**:
+- Выявлены проблемы с миграцией на PostgreSQL:
+  1. Локальный .env файл содержал SQLite connection string вместо PostgreSQL
+  2. Prisma schema использовала `gen_random_uuid()` который не поддерживается Prisma
+  3. Таблицы в Supabase созданы вручную с неправильной структурой
+- Исправлен файл `/home/z/my-project/.env` - добавлен PostgreSQL connection string
+- Обновлена схема Prisma - заменен `gen_random_uuid()` на `uuid()`
+- Улучшен API endpoint `/api/telegram/auth/route.ts`:
+  - Добавлена проверка валидности chat_instance перед преобразованием в BigInt
+  - Добавлен try-catch для обработки ошибок при работе с группами
+- Улучшен файл `/home/z/my-project/src/lib/db.ts`:
+  - Добавлено логирование для production режима
+  - Добавлена проверка соединения с базой данных при запуске
+- Удалены старые таблицы в Supabase и созданы новые через Prisma db push
+- Закоммичены и запушены изменения в GitHub
+
+**Технические детали**:
+- Проблема 1: `.env` содержал `file:/home/z/my-project/db/custom.db` (SQLite)
+  - Решение: Обновлен на `postgres://postgres.dssgamfhizwffyjgbwtu:CZGQXoDqyMLtvJin@aws-1-eu-central-1.pooler.supabase.com:5432/postgres` (Supabase PostgreSQL)
+- Проблема 2: `gen_random_uuid()` не поддерживается в Prisma schema
+  - Решение: Заменен на `uuid()` для всех моделей (TelegramUser, TelegramGroup, UserGroup, UserSession)
+- Проблема 3: Таблицы созданы вручную с неправильной структурой
+  - Решение: Удалены старые таблицы, созданы новые через `prisma db push --accept-data-loss`
+- Коммит: `fix: исправить схему Prisma для PostgreSQL`
+
+**Проблемы и решения**:
+1. **Проблема**: Prisma не генерирует клиент - ошибка "Unknown function gen_random_uuid"
+   - **Решение**: Заменен `gen_random_uuid()` на `uuid()` в схеме Prisma
+
+2. **Проблема**: Prisma db push не может изменить структуру таблиц
+   - **Решение**: Использован `--accept-data-loss` для пересоздания таблиц
+
+3. **Проблема**: Ошибка "Внутренняя ошибка сервера" после миграции на PostgreSQL
+   - **Решение**: Несколько исправлений:
+     - Обновлен .env с правильным PostgreSQL connection string
+     - Исправлена схема Prisma (uuid() вместо gen_random_uuid())
+     - Добавлена проверка валидности chat_instance
+     - Добавлен try-catch для обработки ошибок групп
+
+**Текущий статус**:
+- ✅ Схема Prisma исправлена для PostgreSQL
+- ✅ Prisma Client успешно сгенерирован
+- ✅ Таблицы созданы в Supabase через Prisma
+- ✅ Код запушен в GitHub (коммит b2a13c1)
+- ⏳ Жду деплоя на Vercel
+- ⏳ Жду проверки пользователем
+
+**Следующие шаги**: Проверка работы приложения после деплоя с PostgreSQL
+
+---
+
 ## 📋 Что было сделано в рамках проекта:
 
 ### ✅ Завершено:
